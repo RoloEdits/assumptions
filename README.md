@@ -12,7 +12,7 @@ to be wrong, either now or in the future when something upstream changes
 without warning. And when that happens, a stale comment is worse than no
 comment: it tells you what used to be true, not what is.
 
-That's what this crate is for. `assumptions` provides [`Assumption`], a single
+That's what this crate is for. `assumptions` provides `Assumption`, a single
 error type representing "an invariant about the external world which was
 violated." The macros and trait methods let you document and enforce implicit
 assumptions right at the boundary between the outside world you don't control
