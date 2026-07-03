@@ -38,9 +38,8 @@ use std::{
 /// assume!(!episode.panels.is_empty(), "episode should have at least one panel");
 ///
 /// assume!(
-///     episode.panels.len() < 1000,
-///     "episode should not exceed 1000 panels, got: {}",
-///     episode.panels.len()
+///     date.ends_with("GMT"),
+///     "all known date formats end with `GMT`"
 /// );
 ///
 /// // Return a concrete error instead:
@@ -388,9 +387,6 @@ impl std::error::Error for Assumption {}
 /// ```rust,ignore
 /// let panel = episode.panels.first()
 ///     .assumption("episode should have at least one panel")?;
-///
-/// let config: Config = serde_json::from_str(&raw)
-///     .assumption("config file should be valid JSON")?;
 ///
 /// let tag = page.find_tag(name)
 ///     .with_assumption(|| format!("page should contain a `{name}` tag"))?;
