@@ -410,13 +410,15 @@ impl<T> Assume<T> for Option<T> {
     #[inline]
     #[track_caller]
     fn assumption(self, assumption: &'static str) -> Self::Output {
-        self.ok_or_else(|| Assumption::new(assumption.into()))
+        let option = self;
+        option.ok_or_else(|| Assumption::new(assumption.into()))
     }
 
     #[inline]
     #[track_caller]
     fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output {
-        self.ok_or_else(|| Assumption::new(assumption()))
+        let option = self;
+        option.ok_or_else(|| Assumption::new(assumption()))
     }
 }
 
@@ -426,13 +428,15 @@ impl<T, E: Display> Assume<T> for Result<T, E> {
     #[inline]
     #[track_caller]
     fn assumption(self, assumption: &'static str) -> Self::Output {
-        self.map_err(|err| Assumption::new(format!("{assumption}: {err}")))
+        let result = self;
+        result.map_err(|err| Assumption::new(format!("{assumption}: {err}")))
     }
 
     #[inline]
     #[track_caller]
     fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output {
-        self.map_err(|err| Assumption::new(format!("{}: {err}", assumption())))
+        let result = self;
+        result.map_err(|err| Assumption::new(format!("{}: {err}", assumption())))
     }
 }
 
