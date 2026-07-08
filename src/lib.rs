@@ -47,10 +47,17 @@ use std::{
 /// ```
 #[macro_export]
 macro_rules! assume {
-    ($cond:expr, $fmt:literal $(, $($arg:tt)*)? $(,)?) => {
+    ($cond:expr, $fmt:literal $(,)?) => {
         if $crate::hint::unlikely(!$cond) {
             return Err($crate::Assumption::new(format!(
-                "`{}`: {}", stringify!($cond), format!($fmt $(, $($arg)*)?)
+                "`{}`: {}", stringify!($cond), format!($fmt)
+            )).into());
+        }
+    };
+    ($cond:expr, $fmt:literal, $($arg:tt)+) => {
+        if $crate::hint::unlikely(!$cond) {
+            return Err($crate::Assumption::new(format!(
+                "`{}`: {}", stringify!($cond), format!($fmt, $($arg)+)
             )).into());
         }
     };
@@ -101,11 +108,17 @@ macro_rules! assume {
 /// ```
 #[macro_export]
 macro_rules! assume_eq {
-    ($left:expr, $right:expr, $fmt:literal $(, $($arg:tt)*)? $(,)?) => {
+    ($left:expr, $right:expr, $fmt:literal $(,)?) => {
         if $crate::hint::unlikely(&$left != &$right) {
             return Err($crate::Assumption::new(format!(
-                "{}: left = {:?}, right = {:?}",
-                format!($fmt $(, $($arg)*)?), &$left, &$right
+                "{}: left = {:?}, right = {:?}", format!($fmt), &$left, &$right
+            )).into());
+        }
+    };
+    ($left:expr, $right:expr, $fmt:literal, $($arg:tt)+) => {
+        if $crate::hint::unlikely(&$left != &$right) {
+            return Err($crate::Assumption::new(format!(
+                "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), &$left, &$right
             )).into());
         }
     };
@@ -148,11 +161,17 @@ macro_rules! assume_eq {
 /// ```
 #[macro_export]
 macro_rules! assume_ne {
-    ($left:expr, $right:expr, $fmt:literal $(, $($arg:tt)*)? $(,)?) => {
+    ($left:expr, $right:expr, $fmt:literal $(,)?) => {
         if $crate::hint::unlikely(&$left == &$right) {
             return Err($crate::Assumption::new(format!(
-                "{}: left = {:?}, right = {:?}",
-                format!($fmt $(, $($arg)*)?), &$left, &$right
+                "{}: left = {:?}, right = {:?}", format!($fmt), &$left, &$right
+            )).into());
+        }
+    };
+    ($left:expr, $right:expr, $fmt:literal, $($arg:tt)+) => {
+        if $crate::hint::unlikely(&$left == &$right) {
+            return Err($crate::Assumption::new(format!(
+                "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), &$left, &$right
             )).into());
         }
     };
@@ -215,11 +234,19 @@ macro_rules! assume_ne {
 /// ```
 #[macro_export]
 macro_rules! assume_matches {
-    ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal $(, $($arg:tt)*)? $(,)?) => {
+    ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal $(,)?) => {
         #[allow(clippy::redundant_pattern_matching)]
         if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
             return Err($crate::Assumption::new(format!(
-                "{}, got: `{:?}`", format!($fmt $(, $($arg)*)?), &$expr
+                "{}, got: `{:?}`", format!($fmt), &$expr
+            )).into());
+        }
+    };
+    ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal, $($arg:tt)+) => {
+        #[allow(clippy::redundant_pattern_matching)]
+        if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
+            return Err($crate::Assumption::new(format!(
+                "{}, got: `{:?}`", format!($fmt, $($arg)+), &$expr
             )).into());
         }
     };
@@ -274,8 +301,11 @@ macro_rules! assume_matches {
 /// ```
 #[macro_export]
 macro_rules! assumption {
-    ($fmt:literal $(, $($arg:tt)*)? $(,)?) => {
-        return Err($crate::Assumption::new(format!($fmt $(, $($arg)*)?)).into())
+    ($fmt:literal $(,)?) => {
+        return Err($crate::Assumption::new(format!($fmt)).into())
+    };
+    ($fmt:literal, $($arg:tt)+) => {
+        return Err($crate::Assumption::new(format!($fmt, $($arg)+)).into())
     };
     ($err:expr $(,)?) => {
         return Err($err.into())
@@ -413,14 +443,28 @@ impl<T> Assume<T> for Option<T> {
     #[track_caller]
     fn assumption(self, assumption: &'static str) -> Self::Output {
         let option = self;
-        option.ok_or_else(|| Assumption::new(assumption.into()))
+        #[expect(
+            clippy::option_if_let_else,
+            reason = "for `track_caller` to work properly, no closures can be used"
+        )]
+        match option {
+            Some(some) => Ok(some),
+            None => Err(Assumption::new(String::from(assumption))),
+        }
     }
 
     #[inline]
     #[track_caller]
     fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output {
         let option = self;
-        option.ok_or_else(|| Assumption::new(assumption()))
+        #[expect(
+            clippy::option_if_let_else,
+            reason = "for `track_caller` to work properly, no closures can be used"
+        )]
+        match option {
+            Some(some) => Ok(some),
+            None => Err(Assumption::new(assumption())),
+        }
     }
 }
 
@@ -431,14 +475,20 @@ impl<T, E: Display> Assume<T> for Result<T, E> {
     #[track_caller]
     fn assumption(self, assumption: &'static str) -> Self::Output {
         let result = self;
-        result.map_err(|err| Assumption::new(format!("{assumption}: {err}")))
+        match result {
+            Ok(ok) => Ok(ok),
+            Err(err) => Err(Assumption::new(format!("{assumption}: {err}"))),
+        }
     }
 
     #[inline]
     #[track_caller]
     fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output {
         let result = self;
-        result.map_err(|err| Assumption::new(format!("{}: {err}", assumption())))
+        match result {
+            Ok(ok) => Ok(ok),
+            Err(err) => Err(Assumption::new(format!("{}: {err}", assumption()))),
+        }
     }
 }
 
