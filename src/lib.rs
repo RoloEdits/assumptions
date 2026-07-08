@@ -397,10 +397,12 @@ pub trait Assume<T>: private::Sealed {
     /// Converts `self` into a `Result<T, Assumption>`.
     ///
     /// For `Result`, the original error is appended: `"{assumption}: {err}"`.
+    #[track_caller]
     fn assumption(self, assumption: &'static str) -> Self::Output;
 
     /// Like [`assumption`](Assume::assumption), but constructs the message
     /// lazily. The closure only runs if `self` is `None` or `Err`.
+    #[track_caller]
     fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output;
 }
 
