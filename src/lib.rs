@@ -235,7 +235,6 @@ macro_rules! assume_ne {
 #[macro_export]
 macro_rules! assume_matches {
     ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal $(,)?) => {
-        #[allow(clippy::redundant_pattern_matching)]
         if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
             return Err($crate::Assumption::new(format!(
                 "{}, got: `{:?}`", format!($fmt), &$expr
@@ -243,7 +242,6 @@ macro_rules! assume_matches {
         }
     };
     ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal, $($arg:tt)+) => {
-        #[allow(clippy::redundant_pattern_matching)]
         if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
             return Err($crate::Assumption::new(format!(
                 "{}, got: `{:?}`", format!($fmt, $($arg)+), &$expr
@@ -251,7 +249,6 @@ macro_rules! assume_matches {
         }
     };
     ($expr:expr, $pat:pat $(if $guard:expr)?, $err:expr $(,)?) => {
-        #[allow(clippy::redundant_pattern_matching)]
         if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
             return Err($err.into());
         }
