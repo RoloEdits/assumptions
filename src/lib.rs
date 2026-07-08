@@ -109,22 +109,34 @@ macro_rules! assume {
 #[macro_export]
 macro_rules! assume_eq {
     ($left:expr, $right:expr, $fmt:literal $(,)?) => {
-        if $crate::hint::unlikely(&$left != &$right) {
-            return Err($crate::Assumption::new(format!(
-                "{}: left = {:?}, right = {:?}", format!($fmt), &$left, &$right
-            )).into());
+        match (&$left, &$right) {
+            (left, right) => {
+                if $crate::hint::unlikely(left != right) {
+                    return Err($crate::Assumption::new(format!(
+                        "{}: left = {:?}, right = {:?}", format!($fmt), left, right
+                    )).into());
+                }
+            }
         }
     };
     ($left:expr, $right:expr, $fmt:literal, $($arg:tt)+) => {
-        if $crate::hint::unlikely(&$left != &$right) {
-            return Err($crate::Assumption::new(format!(
-                "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), &$left, &$right
-            )).into());
+        match (&$left, &$right) {
+            (left, right) => {
+                if $crate::hint::unlikely(left != right) {
+                    return Err($crate::Assumption::new(format!(
+                        "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), left, right
+                    )).into());
+                }
+            }
         }
     };
     ($left:expr, $right:expr, $err:expr $(,)?) => {
-        if $crate::hint::unlikely(&$left != &$right) {
-            return Err($err.into());
+        match (&$left, &$right) {
+            (left, right) => {
+                if $crate::hint::unlikely(left != right) {
+                    return Err($err.into());
+                }
+            }
         }
     };
 }
@@ -162,26 +174,37 @@ macro_rules! assume_eq {
 #[macro_export]
 macro_rules! assume_ne {
     ($left:expr, $right:expr, $fmt:literal $(,)?) => {
-        if $crate::hint::unlikely(&$left == &$right) {
-            return Err($crate::Assumption::new(format!(
-                "{}: left = {:?}, right = {:?}", format!($fmt), &$left, &$right
-            )).into());
+        match (&$left, &$right) {
+            (left, right) => {
+                if $crate::hint::unlikely(left == right) {
+                    return Err($crate::Assumption::new(format!(
+                        "{}: left = {:?}, right = {:?}", format!($fmt), left, right
+                    )).into());
+                }
+            }
         }
     };
     ($left:expr, $right:expr, $fmt:literal, $($arg:tt)+) => {
-        if $crate::hint::unlikely(&$left == &$right) {
-            return Err($crate::Assumption::new(format!(
-                "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), &$left, &$right
-            )).into());
+        match (&$left, &$right) {
+            (left, right) => {
+                if $crate::hint::unlikely(left == right) {
+                    return Err($crate::Assumption::new(format!(
+                        "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), left, right
+                    )).into());
+                }
+            }
         }
     };
     ($left:expr, $right:expr, $err:expr $(,)?) => {
-        if $crate::hint::unlikely(&$left == &$right) {
-            return Err($err.into());
+        match (&$left, &$right) {
+            (left, right) => {
+                if $crate::hint::unlikely(left == right) {
+                    return Err($err.into());
+                }
+            }
         }
     };
 }
-
 /// Guards a pattern match, returning an error if the value doesn't match.
 ///
 /// The runtime equivalent of `assert_matches!`, but returns an error instead
