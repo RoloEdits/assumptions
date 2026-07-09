@@ -749,7 +749,7 @@ fn result_with_assumption_closure_not_called_on_ok() {
 
 #[test]
 fn assumption_display_includes_location_and_message() {
-    let err = Assumption::new("episode should have at least one panel".to_string());
+    let err = Assumption::from("episode should have at least one panel");
     let rendered = err.to_string();
     assert!(rendered.starts_with("internal assumption violated at "));
     assert!(rendered.ends_with("episode should have at least one panel"));
@@ -757,13 +757,13 @@ fn assumption_display_includes_location_and_message() {
 
 #[test]
 fn assumption_message_accessor_returns_message_without_prefix() {
-    let err = Assumption::new("episode should have at least one panel".to_string());
+    let err = Assumption::from("episode should have at least one panel");
     assert_eq!(err.message(), "episode should have at least one panel");
 }
 
 #[test]
 fn location_points_to_assumption_new_call_site() {
-    let err = Assumption::new("episode should have at least one panel".to_string());
+    let err = Assumption::from("episode should have at least one panel");
     assert_eq!(err.location().file(), "tests/integration.rs");
     assert_eq!(err.location().line(), 766);
 }

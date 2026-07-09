@@ -5,7 +5,8 @@
 pub mod hint;
 
 use std::{
-    fmt::{Display, Formatter},
+    borrow::Cow,
+    fmt::{Debug, Display, Formatter},
     panic::Location,
 };
 
@@ -49,16 +50,14 @@ use std::{
 macro_rules! assume {
     ($cond:expr, $fmt:literal $(,)?) => {
         if $crate::hint::unlikely(!$cond) {
-            return Err($crate::Assumption::new(format!(
-                "`{}`: {}", stringify!($cond), format!($fmt)
-            )).into());
+            let message = format!("`{}`: {}", stringify!($cond), format!($fmt));
+            return Err($crate::Assumption::from(message).into());
         }
     };
     ($cond:expr, $fmt:literal, $($arg:tt)+) => {
         if $crate::hint::unlikely(!$cond) {
-            return Err($crate::Assumption::new(format!(
-                "`{}`: {}", stringify!($cond), format!($fmt, $($arg)+)
-            )).into());
+            let message = format!("`{}`: {}", stringify!($cond), format!($fmt, $($arg)+));
+            return Err($crate::Assumption::from(message).into());
         }
     };
     ($cond:expr, $err:expr $(,)?) => {
@@ -112,9 +111,8 @@ macro_rules! assume_eq {
         match (&$left, &$right) {
             (left, right) => {
                 if $crate::hint::unlikely(left != right) {
-                    return Err($crate::Assumption::new(format!(
-                        "{}: left = {:?}, right = {:?}", format!($fmt), left, right
-                    )).into());
+                    let message = format!("{}: left = {:?}, right = {:?}", format!($fmt), left, right);
+                    return Err($crate::Assumption::from(message).into());
                 }
             }
         }
@@ -123,9 +121,8 @@ macro_rules! assume_eq {
         match (&$left, &$right) {
             (left, right) => {
                 if $crate::hint::unlikely(left != right) {
-                    return Err($crate::Assumption::new(format!(
-                        "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), left, right
-                    )).into());
+                    let message = format!("{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), left, right);
+                    return Err($crate::Assumption::from(message).into());
                 }
             }
         }
@@ -177,9 +174,8 @@ macro_rules! assume_ne {
         match (&$left, &$right) {
             (left, right) => {
                 if $crate::hint::unlikely(left == right) {
-                    return Err($crate::Assumption::new(format!(
-                        "{}: left = {:?}, right = {:?}", format!($fmt), left, right
-                    )).into());
+                    let message = format!("{}: left = {:?}, right = {:?}", format!($fmt), left, right);
+                    return Err($crate::Assumption::from(message).into());
                 }
             }
         }
@@ -188,9 +184,8 @@ macro_rules! assume_ne {
         match (&$left, &$right) {
             (left, right) => {
                 if $crate::hint::unlikely(left == right) {
-                    return Err($crate::Assumption::new(format!(
-                        "{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), left, right
-                    )).into());
+                    let message = format!("{}: left = {:?}, right = {:?}", format!($fmt, $($arg)+), left, right);
+                    return Err($crate::Assumption::from(message).into());
                 }
             }
         }
@@ -259,16 +254,14 @@ macro_rules! assume_ne {
 macro_rules! assume_matches {
     ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal $(,)?) => {
         if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
-            return Err($crate::Assumption::new(format!(
-                "{}, got: `{:?}`", format!($fmt), &$expr
-            )).into());
+            let message = format!("{}, got: `{:?}`", format!($fmt), &$expr);
+            return Err($crate::Assumption::from(message).into());
         }
     };
     ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal, $($arg:tt)+) => {
         if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
-            return Err($crate::Assumption::new(format!(
-                "{}, got: `{:?}`", format!($fmt, $($arg)+), &$expr
-            )).into());
+            let message = format!("{}, got: `{:?}`", format!($fmt, $($arg)+), &$expr);
+            return Err($crate::Assumption::from(message).into());
         }
     };
     ($expr:expr, $pat:pat $(if $guard:expr)?, $err:expr $(,)?) => {
@@ -365,10 +358,10 @@ macro_rules! assume_implies {
 #[macro_export]
 macro_rules! assumption {
     ($fmt:literal $(,)?) => {
-        return Err($crate::Assumption::new(format!($fmt)).into())
+        return Err($crate::Assumption::from(format!($fmt)).into())
     };
     ($fmt:literal, $($arg:tt)+) => {
-        return Err($crate::Assumption::new(format!($fmt, $($arg)+)).into())
+        return Err($crate::Assumption::from(format!($fmt, $($arg)+)).into())
     };
     ($err:expr $(,)?) => {
         return Err($err.into())
@@ -390,9 +383,13 @@ macro_rules! assumption {
 /// If you encounter this error in the wild, the location and message together
 /// point directly at the assumption that needs revisiting. Please open an issue
 /// with the full output.
-#[derive(Debug)]
+#[repr(transparent)]
 pub struct Assumption {
-    message: Box<str>,
+    repr: Box<Repr>,
+}
+
+struct Repr {
+    message: Cow<'static, str>,
     location: &'static Location<'static>,
 }
 
@@ -406,10 +403,14 @@ impl Assumption {
     /// inside this crate.
     #[must_use]
     #[track_caller]
-    pub fn new(message: String) -> Self {
-        Self {
-            message: message.into_boxed_str(),
+    pub fn new(message: Cow<'static, str>) -> Self {
+        let repr = Repr {
+            message,
             location: Location::caller(),
+        };
+
+        Self {
+            repr: Box::new(repr),
         }
     }
 
@@ -421,7 +422,7 @@ impl Assumption {
     /// file is edited.
     #[must_use]
     pub fn message(&self) -> &str {
-        let assumption = self;
+        let assumption = self.repr.as_ref();
         &assumption.message
     }
 
@@ -430,15 +431,25 @@ impl Assumption {
     /// Always points at the [`assume!`], [`assumption!`], or [`Assume`] call
     /// site in user code, captured via `#[track_caller]`.
     #[must_use]
-    pub const fn location(&self) -> &Location<'static> {
-        let assumption = self;
+    pub fn location(&self) -> &Location<'static> {
+        let assumption = self.repr.as_ref();
         assumption.location
+    }
+}
+
+impl Debug for Assumption {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let assumption = self.repr.as_ref();
+        f.debug_struct("Assumption")
+            .field("message", &assumption.message)
+            .field("location", &assumption.location)
+            .finish()
     }
 }
 
 impl Display for Assumption {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let assumption = self;
+        let assumption = self.repr.as_ref();
         write!(
             f,
             "internal assumption violated at {}: {}",
@@ -512,7 +523,7 @@ impl<T> Assume<T> for Option<T> {
         )]
         match option {
             Some(some) => Ok(some),
-            None => Err(Assumption::new(String::from(assumption))),
+            None => Err(Assumption::from(String::from(assumption))),
         }
     }
 
@@ -526,7 +537,7 @@ impl<T> Assume<T> for Option<T> {
         )]
         match option {
             Some(some) => Ok(some),
-            None => Err(Assumption::new(assumption())),
+            None => Err(Assumption::from(assumption())),
         }
     }
 }
@@ -540,7 +551,7 @@ impl<T, E: Display> Assume<T> for Result<T, E> {
         let result = self;
         match result {
             Ok(ok) => Ok(ok),
-            Err(err) => Err(Assumption::new(format!("{assumption}: {err}"))),
+            Err(err) => Err(Assumption::from(format!("{assumption}: {err}"))),
         }
     }
 
@@ -550,7 +561,7 @@ impl<T, E: Display> Assume<T> for Result<T, E> {
         let result = self;
         match result {
             Ok(ok) => Ok(ok),
-            Err(err) => Err(Assumption::new(format!("{}: {err}", assumption()))),
+            Err(err) => Err(Assumption::from(format!("{}: {err}", assumption()))),
         }
     }
 }
@@ -559,7 +570,15 @@ impl From<String> for Assumption {
     #[inline]
     #[track_caller]
     fn from(assumption: String) -> Self {
-        Self::new(assumption)
+        Self::new(Cow::Owned(assumption))
+    }
+}
+
+impl From<&'static str> for Assumption {
+    #[inline]
+    #[track_caller]
+    fn from(assumption: &'static str) -> Self {
+        Self::new(Cow::Borrowed(assumption))
     }
 }
 
