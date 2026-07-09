@@ -10,6 +10,8 @@ use std::{
     panic::Location,
 };
 
+use std::assert as invariant;
+
 /// Guards an invariant, returning an error if violated.
 ///
 /// The runtime equivalent of `assert!`. Checks a boolean condition and
@@ -404,6 +406,8 @@ impl Assumption {
     #[must_use]
     #[track_caller]
     pub fn new(message: Cow<'static, str>) -> Self {
+        const { invariant!(size_of::<Self>() == size_of::<usize>()) }
+
         let repr = Repr {
             message,
             location: Location::caller(),
