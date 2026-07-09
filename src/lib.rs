@@ -278,6 +278,49 @@ macro_rules! assume_matches {
     };
 }
 
+/// Guards a logical implication: if `$a` is true, then `$b` must also be true.
+///
+/// Equivalent to `if $a { assume!($b, ...) }`. Use this when an assumption
+/// only applies conditionally: when one fact being true requires another to
+/// also hold.
+///
+/// # Errors
+///
+/// Returns early with an [`Assumption`] if `$a` is true and `$b` is false.
+/// Has no effect if `$a` is false.
+///
+/// # Recommended Message Style
+///
+/// Phrase the message as if it completes the sentence "assume that...".
+///
+/// # Examples
+///
+/// ```rust,ignore
+/// // If the episode is published, it must have a publish date.
+/// assume_implies!(
+///     episode.is_published() => episode.published_at.is_some(),
+///     "published episode should always have a publish date"
+/// );
+/// ```
+#[macro_export]
+macro_rules! assume_implies {
+    ($a:expr => $b:expr, $fmt:literal $(,)?) => {
+        if $a {
+            $crate::assume!($b, $fmt);
+        }
+    };
+    ($a:expr => $b:expr, $fmt:literal, $($arg:tt)+) => {
+        if $a {
+            $crate::assume!($b, $fmt, $($arg)+);
+        }
+    };
+    ($a:expr => $b:expr, $err:expr $(,)?) => {
+        if $a {
+            $crate::assume!($b, $err);
+        }
+    };
+}
+
 /// Unconditionally returns an error.
 ///
 /// Use this when you've already determined something is wrong. Typically used in

@@ -1,4 +1,4 @@
-use assumptions::{Assume, Assumption, assume, assume_eq, assume_matches, assume_ne, assumption};
+use assumptions::*;
 
 #[test]
 fn assumption_literal() {
@@ -862,4 +862,143 @@ fn location_points_to_result_with_assumption_call_site() {
     let err = result.unwrap_err();
     assert_eq!(err.location().file(), "tests/integration.rs");
     assert_eq!(err.location().line(), 861);
+}
+
+#[test]
+fn assume_implies_does_not_error_when_antecedent_is_false() {
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(false => false, "consequent should hold when antecedent is true");
+        Ok(())
+    })();
+    assert!(result.is_ok());
+}
+
+#[test]
+fn assume_implies_does_not_error_when_both_true() {
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(true => true, "consequent should hold when antecedent is true");
+        Ok(())
+    })();
+    assert!(result.is_ok());
+}
+
+#[test]
+fn assume_implies_errors_when_antecedent_true_and_consequent_false_literal() {
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(
+            true => false,
+            "consequent should hold when antecedent is true"
+        );
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "`false`: consequent should hold when antecedent is true"
+    );
+}
+
+#[test]
+fn assume_implies_literal_trailing_comma() {
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(
+            true => false,
+            "consequent should hold when antecedent is true",
+        );
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "`false`: consequent should hold when antecedent is true"
+    );
+}
+
+#[test]
+fn assume_implies_inline_format_arg() {
+    let name = "published_at";
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(
+            true => false,
+            "published episode should always have a `{name}` date"
+        );
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "`false`: published episode should always have a `published_at` date"
+    );
+}
+
+#[test]
+fn assume_implies_format_args() {
+    let field = "published_at";
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(
+            true => false,
+            "published episode should always have a `{}` date",
+            field
+        );
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "`false`: published episode should always have a `published_at` date"
+    );
+}
+
+#[test]
+fn assume_implies_format_args_trailing_comma() {
+    let field = "published_at";
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(
+            true => false,
+            "published episode should always have a `{}` date",
+            field,
+        );
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "`false`: published episode should always have a `published_at` date"
+    );
+}
+
+#[test]
+fn assume_implies_arbitrary_error() {
+    let result: Result<(), std::io::Error> = (|| {
+        assume_implies!(
+            true => false,
+            std::io::Error::other("consequent should hold when antecedent is true")
+        );
+        Ok(())
+    })();
+    assert!(result.is_err());
+}
+
+#[test]
+fn assume_implies_arbitrary_error_trailing_comma() {
+    let result: Result<(), std::io::Error> = (|| {
+        assume_implies!(
+            true => false,
+            std::io::Error::other("consequent should hold when antecedent is true"),
+        );
+        Ok(())
+    })();
+    assert!(result.is_err());
+}
+
+#[test]
+fn assume_implies_with_real_condition() {
+    let is_published = std::hint::black_box(true);
+    let published_at: Option<u64> = None;
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(
+            is_published => published_at.is_some(),
+            "published episode should always have a publish date"
+        );
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "`published_at.is_some()`: published episode should always have a publish date"
+    );
 }
