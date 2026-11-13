@@ -921,7 +921,7 @@ fn assume_implies_errors_when_antecedent_true_and_consequent_false_literal() {
     })();
     assert_eq!(
         result.unwrap_err().message(),
-        "`false`: consequent should hold when antecedent is true"
+        "`true => false`: consequent should hold when antecedent is true"
     );
 }
 
@@ -936,7 +936,7 @@ fn assume_implies_literal_trailing_comma() {
     })();
     assert_eq!(
         result.unwrap_err().message(),
-        "`false`: consequent should hold when antecedent is true"
+        "`true => false`: consequent should hold when antecedent is true"
     );
 }
 
@@ -952,7 +952,7 @@ fn assume_implies_inline_format_arg() {
     })();
     assert_eq!(
         result.unwrap_err().message(),
-        "`false`: published episode should always have a `published_at` date"
+        "`true => false`: published episode should always have a `published_at` date"
     );
 }
 
@@ -969,7 +969,7 @@ fn assume_implies_format_args() {
     })();
     assert_eq!(
         result.unwrap_err().message(),
-        "`false`: published episode should always have a `published_at` date"
+        "`true => false`: published episode should always have a `published_at` date"
     );
 }
 
@@ -986,7 +986,7 @@ fn assume_implies_format_args_trailing_comma() {
     })();
     assert_eq!(
         result.unwrap_err().message(),
-        "`false`: published episode should always have a `published_at` date"
+        "`true => false`: published episode should always have a `published_at` date"
     );
 }
 
@@ -1027,7 +1027,7 @@ fn assume_implies_with_real_condition() {
     })();
     assert_eq!(
         result.unwrap_err().message(),
-        "`published_at.is_some()`: published episode should always have a publish date"
+        "`is_published => published_at.is_some()`: published episode should always have a publish date"
     );
 }
 
