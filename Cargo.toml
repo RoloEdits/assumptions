@@ -2,5 +2,11 @@
 name = "assumptions"
 version = "0.1.0"
 edition = "2024"
-
-[dependencies]
+rust-version = "1.95.0"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/RoloEdits/assumptions"
+documentation = "https://docs.rs/assumptions"
+categories = ["development-tools::debugging"]
+description = "A crate for adding assumptions about the outside world that can change at any moment without your control."
+keywords = ["error", "anyhow", "assert", "invariant", "assume"]
