@@ -22,23 +22,10 @@ use std::assert as invariant;
 /// Returns early with an [`Assumption`] if the condition is false. When passed
 /// a concrete error value instead of a message, returns that error directly.
 ///
-/// # Recommended Message Style
-///
-/// Phrase the message as if it completes the sentence "assume that...".
-///
-/// ```rust,ignore
-/// // "assume that episode has at least one panel"
-/// assume!(!episode.panels.is_empty(), "episode should have at least one panel");
-/// // Avoid: describes the failure rather than the assumption.
-/// assume!(!episode.panels.is_empty(), "panels list is empty");
-/// ```
-///
-/// For more detail see [Recommended Message Style](crate#recommended-message-style).
-///
 /// # Examples
 ///
 /// ```rust,ignore
-/// assume!(!episode.panels.is_empty(), "episode should have at least one panel");
+/// assume!(!episode.panels.is_empty(), "published episodes must have have at least one panel to be submitted");
 ///
 /// assume!(
 ///     date.ends_with("GMT"),
@@ -81,21 +68,6 @@ macro_rules! assume {
 /// passed a concrete error value instead of a message, returns that error
 /// directly.
 ///
-/// # Recommended Message Style
-///
-/// Phrase the message as if it completes the sentence "assume that...". The
-/// values themselves are included automatically, so the message should state
-/// the invariant, not the mismatch.
-///
-/// ```rust,ignore
-/// // "assume that label preceding `em.cnt` should be `view`"
-/// assume_eq!(label.as_str(), "view", "label preceding `em.cnt` should be `view`");
-/// // Avoid: describes the failure rather than the assumption.
-/// assume_eq!(label.as_str(), "view", "label wasn't `view`");
-/// ```
-///
-/// For more detail see [Recommended Message Style](crate#recommended-message-style).
-///
 /// # Examples
 ///
 /// ```rust,ignore
@@ -105,7 +77,7 @@ macro_rules! assume {
 /// );
 ///
 /// // Return a concrete error instead:
-/// assume_eq!(header.magic, EXPECTED_MAGIC, ParseError::BadMagicBytes);
+/// assume_eq!(header.magic, MAGIC, ParseError::BadMagicBytes);
 /// ```
 #[macro_export]
 macro_rules! assume_eq {
@@ -151,22 +123,10 @@ macro_rules! assume_eq {
 /// Returns early with an [`Assumption`] if the values are equal. When passed
 /// a concrete error value instead of a message, returns that error directly.
 ///
-/// # Recommended Message Style
-///
-/// Phrase the message as if it completes the sentence "assume that...".
-///
-/// ```rust,ignore
-/// // "assume that regenerated id should differ from the original"
-/// assume_ne!(old_id, new_id, "regenerated id should differ from the original");
-/// ```
-///
-/// For more detail see [Recommended Message Style](crate#recommended-message-style).
-///
 /// # Examples
 ///
 /// ```rust,ignore
-/// assume_ne!(old_id, new_id, "regenerated id should differ from the original");
-///
+/// assume_ne!(old_id, new_id, "regenerated id returned from [external service] should always differ from the original");
 /// // Return a concrete error instead:
 /// assume_ne!(old_id, new_id, IdError::RegenerationCollision);
 /// ```
@@ -208,30 +168,13 @@ macro_rules! assume_ne {
 /// of panicking. On failure, the actual value is automatically included via
 /// `{:?}`. Requires `Debug` on the expression's type.
 ///
-/// Does not bind variables from the pattern into the surrounding scope. If
-/// you need the matched value afterward, re-match it explicitly once the
-/// assumption holds. Supports an optional match guard via `if`.
+/// Supports an optional match guard via `if`.
 ///
 /// # Errors
 ///
 /// Returns early with an [`Assumption`] if the value does not match the
 /// pattern or the guard fails. When passed a concrete error value instead of
 /// a message, returns that error directly.
-///
-/// # Recommended Message Style
-///
-/// Phrase the message as if it completes the sentence "assume that...". The
-/// actual value is included automatically, so the message should state the
-/// invariant, not the mismatch.
-///
-/// ```rust,ignore
-/// // "assume that post should be published before indexing"
-/// assume_matches!(status, Status::Published, "post should be published before indexing");
-/// // Avoid: describes the failure rather than the assumption.
-/// assume_matches!(status, Status::Published, "status wasn't Published");
-/// ```
-///
-/// For more detail see [Recommended Message Style](crate#recommended-message-style).
 ///
 /// # Examples
 ///
@@ -242,12 +185,8 @@ macro_rules! assume_ne {
 /// assume_matches!(
 ///     episode.published,
 ///     Some(date) if date.year() >= 2014,
-///     "episode publish year should be 2014 or later"
+///     "episode publish year should be 2014 or later as website only started in 2014"
 /// );
-///
-/// // Need the bound value afterward? Re-match once the assumption holds:
-/// assume_matches!(value, Json::Object(_), "top-level response should be a JSON object");
-/// let Json::Object(map) = value else { unreachable!() };
 ///
 /// // Return a concrete error instead:
 /// assume_matches!(value, Json::Object(_), ParseError::ExpectedObject);
@@ -284,17 +223,13 @@ macro_rules! assume_matches {
 /// Returns early with an [`Assumption`] if `$a` is true and `$b` is false.
 /// Has no effect if `$a` is false.
 ///
-/// # Recommended Message Style
-///
-/// Phrase the message as if it completes the sentence "assume that...".
-///
 /// # Examples
 ///
 /// ```rust,ignore
 /// // If the episode is published, it must have a publish date.
 /// assume_implies!(
 ///     episode.is_published() => episode.published_at.is_some(),
-///     "published episode should always have a publish date"
+///     "a published episode should always have a corresponding publish date"
 /// );
 /// ```
 #[macro_export]
@@ -318,27 +253,13 @@ macro_rules! assume_implies {
 
 /// Unconditionally returns an error.
 ///
-/// Use this when you've already determined something is wrong. Typically used in
-/// the wildcard arm of a `match` where no condition remains to check. The
-/// error-returning equivalent of `anyhow::bail!`.
+/// Use this when you've already determined something is wrong. The error-returning
+/// equivalent of `anyhow::bail!`.
 ///
 /// # Errors
 ///
 /// Always returns early with an [`Assumption`]. When passed a concrete error
 /// value instead of a message, returns that error directly.
-///
-/// # Recommended Message Style
-///
-/// State the invariant that was expected to hold at this point in the code.
-///
-/// ```rust,ignore
-/// // Good: states what should have been true.
-/// assumption!("tag should be `episode` or `season`, got: `{other}`");
-/// // Avoid: describes what happened rather than what was assumed.
-/// assumption!("unrecognized tag: `{other}`");
-/// ```
-///
-/// For more detail see [Recommended Message Style](crate#recommended-message-style).
 ///
 /// # Examples
 ///
@@ -354,7 +275,7 @@ macro_rules! assume_implies {
 /// // Return a concrete error instead:
 /// match tag.as_str() {
 ///     "episode" => Ok(Tag::Episode),
-///     _         => assumption!(ParseError::UnknownTag),
+///     other => assumption!(ParseError::UnknownTag(other)),
 /// }
 /// ```
 #[macro_export]
@@ -382,9 +303,8 @@ macro_rules! assumption {
 /// internal assumption violated at src/webtoon/page.rs:42:5: label preceding first `em.cnt` on webtoon homepage should be `view`
 /// ```
 ///
-/// If you encounter this error in the wild, the location and message together
-/// point directly at the assumption that needs revisiting. Please open an issue
-/// with the full output.
+/// If you encounter this error in the wild, please open an issue for the crate
+/// where this was from, with the full output of the message.
 #[repr(transparent)]
 pub struct Assumption {
     repr: Box<Repr>,
@@ -472,44 +392,26 @@ impl std::error::Error for Assumption {}
 /// of an `anyhow::Error`.
 ///
 /// Use `.assumption(msg)` for a static message. Use `.with_assumption(|| ...)`
-/// when the message needs formatting. The closure only runs on failure.
+/// when the message needs formatting.
 ///
 /// For `Result`, the original error's display output is appended to the
 /// message automatically.
-///
-/// # Recommended Message Style
-///
-/// State the invariant that was expected to hold at this point in the code.
-///
-/// ```rust,ignore
-/// // Good: states what should have been true.
-/// episode.panels.first().assumption("episode should have at least one panel")?;
-/// // Avoid: describes what happened rather than what was assumed.
-/// episode.panels.first().assumption("no panels found")?;
-/// ```
-///
-/// For more detail see [Recommended Message Style](crate#recommended-message-style).
 ///
 /// # Examples
 ///
 /// ```rust,ignore
 /// let panel = episode.panels.first()
-///     .assumption("episode should have at least one panel")?;
+///     .assumption("published episode must have at least one panel in order to be published")?;
 ///
 /// let tag = page.find_tag(name)
-///     .with_assumption(|| format!("page should contain a `{name}` tag"))?;
+///     .with_assumption(|| format!("webtoon homepage should contain a `{name}` tag for the title"))?;
 /// ```
 pub trait Assume<T>: private::Sealed {
     type Output;
 
-    /// Converts `self` into a `Result<T, Assumption>`.
-    ///
-    /// For `Result`, the original error is appended: `"{assumption}: {err}"`.
     #[track_caller]
     fn assumption(self, assumption: &'static str) -> Self::Output;
 
-    /// Like [`assumption`](Assume::assumption), but constructs the message
-    /// lazily. The closure only runs if `self` is `None` or `Err`.
     #[track_caller]
     fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output;
 }
