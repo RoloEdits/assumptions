@@ -406,22 +406,19 @@ impl std::error::Error for Assumption {}
 /// let tag = page.find_tag(name)
 ///     .with_assumption(|| format!("webtoon homepage should contain a `{name}` tag for the title"))?;
 /// ```
+#[expect(clippy::missing_errors_doc)]
 pub trait Assume<T>: private::Sealed {
-    type Output;
+    #[track_caller]
+    fn assumption(self, assumption: &'static str) -> Result<T, Assumption>;
 
     #[track_caller]
-    fn assumption(self, assumption: &'static str) -> Self::Output;
-
-    #[track_caller]
-    fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output;
+    fn with_assumption(self, assumption: impl FnOnce() -> String) -> Result<T, Assumption>;
 }
 
 impl<T> Assume<T> for Option<T> {
-    type Output = Result<T, Assumption>;
-
     #[inline]
     #[track_caller]
-    fn assumption(self, assumption: &'static str) -> Self::Output {
+    fn assumption(self, assumption: &'static str) -> Result<T, Assumption> {
         let option = self;
         #[expect(
             clippy::option_if_let_else,
@@ -435,7 +432,7 @@ impl<T> Assume<T> for Option<T> {
 
     #[inline]
     #[track_caller]
-    fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output {
+    fn with_assumption(self, assumption: impl FnOnce() -> String) -> Result<T, Assumption> {
         let option = self;
         #[expect(
             clippy::option_if_let_else,
@@ -449,11 +446,9 @@ impl<T> Assume<T> for Option<T> {
 }
 
 impl<T, E: Display> Assume<T> for Result<T, E> {
-    type Output = Result<T, Assumption>;
-
     #[inline]
     #[track_caller]
-    fn assumption(self, assumption: &'static str) -> Self::Output {
+    fn assumption(self, assumption: &'static str) -> Result<T, Assumption> {
         let result = self;
         match result {
             Ok(ok) => Ok(ok),
@@ -463,7 +458,7 @@ impl<T, E: Display> Assume<T> for Result<T, E> {
 
     #[inline]
     #[track_caller]
-    fn with_assumption(self, assumption: impl FnOnce() -> String) -> Self::Output {
+    fn with_assumption(self, assumption: impl FnOnce() -> String) -> Result<T, Assumption> {
         let result = self;
         match result {
             Ok(ok) => Ok(ok),
