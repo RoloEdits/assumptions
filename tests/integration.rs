@@ -763,105 +763,133 @@ fn assumption_message_accessor_returns_message_without_prefix() {
 
 #[test]
 fn location_points_to_assumption_new_call_site() {
+    let line = line!() + 1;
     let err = Assumption::from("episode should have at least one panel");
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 766);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_assumption_macro_call_site() {
+    let line = line!() + 2;
     let result: Result<(), Assumption> = (|| {
         assumption!("episode should have at least one panel");
     })();
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 774);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_assume_macro_call_site() {
     let cond = std::hint::black_box(false);
+    let line = line!() + 2;
     let result: Result<(), Assumption> = (|| {
         assume!(cond, "condition should hold");
         Ok(())
     })();
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 785);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_assume_matches_macro_call_site() {
     let cond = std::hint::black_box(Some(0));
+    let line = line!() + 2;
     let result: Result<(), Assumption> = (|| {
         assume_matches!(cond, Some(1), "condition should hold");
         Ok(())
     })();
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 797);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_assume_eq_macro_call_site() {
     let cond = std::hint::black_box(false);
+    let line = line!() + 2;
     let result: Result<(), Assumption> = (|| {
         assume_eq!(cond, true, "condition should hold");
         Ok(())
     })();
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 809);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_assume_ne_macro_call_site() {
     let cond = std::hint::black_box(false);
+    let line = line!() + 2;
     let result: Result<(), Assumption> = (|| {
         assume_ne!(cond, false, "condition should hold");
         Ok(())
     })();
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 821);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
+}
+
+#[test]
+fn location_points_to_assume_implies_macro_call_site() {
+    let line = line!() + 2;
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(true => std::hint::black_box(false), "condition should hold");
+        Ok(())
+    })();
+    let err = result.unwrap_err();
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_option_assumption_call_site() {
     let val: Option<()> = None;
+    let line = line!() + 1;
     let result: Result<(), Assumption> = val.assumption("value should be present");
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 832);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_option_with_assumption_call_site() {
     let val: Option<()> = None;
-    let result: Result<(), Assumption> =
-        val.with_assumption(|| "value should be present".to_string());
+    let line = line!() + 1;
+    let result: Result<(), Assumption> = val.with_assumption(|| String::from("missing"));
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 842);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_result_assumption_call_site() {
     let val: Result<(), &str> = Err("original error");
+    let line = line!() + 1;
     let result: Result<(), Assumption> = val.assumption("value should be present");
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 851);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
 fn location_points_to_result_with_assumption_call_site() {
     let val: Result<(), &str> = Err("original error");
-    let result: Result<(), Assumption> =
-        val.with_assumption(|| "value should be present".to_string());
+    let line = line!() + 1;
+    let result: Result<(), Assumption> = val.with_assumption(|| String::from("missing"));
     let err = result.unwrap_err();
-    assert_eq!(err.location().file(), "tests/integration.rs");
-    assert_eq!(err.location().line(), 861);
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
+}
+
+#[test]
+fn location_through_into_points_at_caller() {
+    let line = line!() + 1;
+    let err: Assumption = "episode should have at least one panel".into();
+    assert_eq!(err.location().file(), file!());
+    assert_eq!(err.location().line(), line);
 }
 
 #[test]
@@ -1001,4 +1029,184 @@ fn assume_implies_with_real_condition() {
         result.unwrap_err().message(),
         "`published_at.is_some()`: published episode should always have a publish date"
     );
+}
+
+use std::cell::Cell;
+
+fn counted<T: Clone>(counter: &Cell<u32>, value: T) -> T {
+    counter.set(counter.get() + 1);
+    value
+}
+
+#[test]
+fn assume_evaluates_condition_once_on_failure() {
+    let calls = Cell::new(0);
+    let result: Result<(), Assumption> = (|| {
+        assume!(counted(&calls, false), "condition should hold");
+        Ok(())
+    })();
+    assert!(result.is_err());
+    assert_eq!(calls.get(), 1);
+}
+
+#[test]
+fn assume_evaluates_condition_once_on_success() {
+    let calls = Cell::new(0);
+    let result: Result<(), Assumption> = (|| {
+        assume!(counted(&calls, true), "condition should hold");
+        Ok(())
+    })();
+    assert!(result.is_ok());
+    assert_eq!(calls.get(), 1);
+}
+
+#[test]
+fn assume_eq_evaluates_each_side_once_on_failure() {
+    let (l, r) = (Cell::new(0), Cell::new(0));
+    let result: Result<(), Assumption> = (|| {
+        assume_eq!(counted(&l, 1), counted(&r, 2), "values should be equal");
+        Ok(())
+    })();
+    assert!(result.is_err());
+    assert_eq!((l.get(), r.get()), (1, 1));
+}
+
+#[test]
+fn assume_ne_evaluates_each_side_once_on_failure() {
+    let (l, r) = (Cell::new(0), Cell::new(0));
+    let result: Result<(), Assumption> = (|| {
+        assume_ne!(counted(&l, 1), counted(&r, 1), "values should differ");
+        Ok(())
+    })();
+    assert!(result.is_err());
+    assert_eq!((l.get(), r.get()), (1, 1));
+}
+
+#[test]
+fn assume_matches_evaluates_expr_once_on_failure_for_every_arm() {
+    let calls = Cell::new(0);
+    let _: Result<(), Assumption> = (|| {
+        assume_matches!(counted(&calls, None::<u32>), Some(_), "should be some");
+        Ok(())
+    })();
+    assert_eq!(calls.get(), 1, "literal arm");
+
+    let calls = Cell::new(0);
+    let _: Result<(), Assumption> = (|| {
+        assume_matches!(
+            counted(&calls, None::<u32>),
+            Some(_),
+            "should be {}",
+            "some"
+        );
+        Ok(())
+    })();
+    assert_eq!(calls.get(), 1, "format-args arm");
+
+    let calls = Cell::new(0);
+    let _: Result<(), std::io::Error> = (|| {
+        assume_matches!(
+            counted(&calls, None::<u32>),
+            Some(_),
+            std::io::Error::other("should be some")
+        );
+        Ok(())
+    })();
+    assert_eq!(calls.get(), 1, "error arm");
+}
+
+#[test]
+fn assume_matches_reports_the_value_that_actually_failed() {
+    let mut it = vec![1, 2, 3].into_iter();
+    let result: Result<(), Assumption> = (|| {
+        assume_matches!(it.next(), Some(5), "first item should be 5");
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "first item should be 5, got: `Some(1)`"
+    );
+    assert_eq!(it.collect::<Vec<_>>(), [2, 3]);
+}
+
+#[test]
+fn assume_matches_evaluates_expr_once_on_success() {
+    let calls = Cell::new(0);
+    let result: Result<(), Assumption> = (|| {
+        assume_matches!(counted(&calls, Some(1)), Some(_), "should be some");
+        Ok(())
+    })();
+    assert!(result.is_ok());
+    assert_eq!(calls.get(), 1);
+}
+
+#[test]
+fn assume_implies_evaluates_operands_once() {
+    let (a, b) = (Cell::new(0), Cell::new(0));
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(counted(&a, true) => counted(&b, false), "consequent should hold");
+        Ok(())
+    })();
+    assert!(result.is_err());
+    assert_eq!((a.get(), b.get()), (1, 1));
+
+    // Consequent must not be evaluated at all when the antecedent is false.
+    let (a, b) = (Cell::new(0), Cell::new(0));
+    let result: Result<(), Assumption> = (|| {
+        assume_implies!(counted(&a, false) => counted(&b, false), "consequent should hold");
+        Ok(())
+    })();
+    assert!(result.is_ok());
+    assert_eq!((a.get(), b.get()), (1, 0));
+}
+
+#[test]
+fn assume_matches_accepts_moving_pattern_on_non_copy_place() {
+    let name: Option<String> = Some("tower-of-god".into());
+    let result: Result<(), Assumption> = (|| {
+        assume_matches!(name, Some(s) if s.len() > 5, "name should be long");
+        Ok(())
+    })();
+    assert!(result.is_ok());
+}
+
+#[test]
+fn assume_matches_reports_non_copy_value_on_failure() {
+    let name: Option<String> = Some("tog".into());
+    let result: Result<(), Assumption> = (|| {
+        assume_matches!(name, Some(s) if s.len() > 5, "name should be long");
+        Ok(())
+    })();
+    assert_eq!(
+        result.unwrap_err().message(),
+        "name should be long, got: `Some(\"tog\")`"
+    );
+}
+
+#[test]
+#[deny(unused_variables)]
+fn assume_matches_does_not_warn_about_unused_bindings() {
+    let result: Result<(), Assumption> = (|| {
+        assume_matches!(Some(1u32), Some(n), "should be some");
+        Ok(())
+    })();
+    assert!(result.is_ok());
+}
+
+#[test]
+fn non_literal_message_bypasses_assumption() {
+    const MSG: &str = "episode should have at least one panel";
+    let result: Result<(), Box<dyn std::error::Error>> = (|| {
+        assume!(std::hint::black_box(false), MSG);
+        Ok(())
+    })();
+    let err = result.unwrap_err();
+    assert!(err.downcast_ref::<Assumption>().is_none());
+    assert_eq!(err.to_string(), MSG);
+}
+
+#[test]
+fn assumption_is_send_sync_static() {
+    fn check<T: Send + Sync + 'static + std::error::Error>() {}
+    check::<Assumption>();
 }
