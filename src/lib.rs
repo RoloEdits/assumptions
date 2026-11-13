@@ -226,7 +226,7 @@ macro_rules! assume_matches {
 ///
 /// Equivalent to `if $a { assume!($b, ...) }`. Use this when an assumption
 /// only applies conditionally: when one fact being true requires another to
-/// also hold.
+/// also hold. `$b` is only evaluated when `$a` is true.
 ///
 /// # Errors
 ///
@@ -245,18 +245,30 @@ macro_rules! assume_matches {
 #[macro_export]
 macro_rules! assume_implies {
     ($a:expr => $b:expr, $fmt:literal $(,)?) => {
-        if $a {
-            $crate::assume!($b, $fmt);
+        if $a && $crate::hint::unlikely(!$b) {
+            let message = format!(
+                "`{} => {}`: {}",
+                stringify!($a),
+                stringify!($b),
+                format!($fmt)
+            );
+            return Err($crate::Assumption::from(message).into());
         }
     };
     ($a:expr => $b:expr, $fmt:literal, $($arg:tt)+) => {
-        if $a {
-            $crate::assume!($b, $fmt, $($arg)+);
+        if $a && $crate::hint::unlikely(!$b) {
+            let message = format!(
+                "`{} => {}`: {}",
+                stringify!($a),
+                stringify!($b),
+                format!($fmt, $($arg)+)
+            );
+            return Err($crate::Assumption::from(message).into());
         }
     };
     ($a:expr => $b:expr, $err:expr $(,)?) => {
-        if $a {
-            $crate::assume!($b, $err);
+        if $a && $crate::hint::unlikely(!$b) {
+            return Err($err.into());
         }
     };
 }
