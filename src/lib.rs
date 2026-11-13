@@ -194,20 +194,30 @@ macro_rules! assume_ne {
 #[macro_export]
 macro_rules! assume_matches {
     ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal $(,)?) => {
-        if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
-            let message = format!("{}, got: `{:?}`", format!($fmt), &$expr);
-            return Err($crate::Assumption::from(message).into());
+        match $expr {
+            #[allow(unused_variables)]
+            $pat $(if $guard)? => {}
+            ref got => {
+                let message = format!("{}, got: `{:?}`", format!($fmt), got);
+                return Err($crate::Assumption::from(message).into());
+            }
         }
     };
     ($expr:expr, $pat:pat $(if $guard:expr)?, $fmt:literal, $($arg:tt)+) => {
-        if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
-            let message = format!("{}, got: `{:?}`", format!($fmt, $($arg)+), &$expr);
-            return Err($crate::Assumption::from(message).into());
+        match $expr {
+            #[allow(unused_variables)]
+            $pat $(if $guard)? => {}
+            ref got => {
+                let message = format!("{}, got: `{:?}`", format!($fmt, $($arg)+), got);
+                return Err($crate::Assumption::from(message).into());
+            }
         }
     };
     ($expr:expr, $pat:pat $(if $guard:expr)?, $err:expr $(,)?) => {
-        if $crate::hint::unlikely(!matches!($expr, $pat $(if $guard)?)) {
-            return Err($err.into());
+        match $expr {
+            #[allow(unused_variables)]
+            $pat $(if $guard)? => {}
+            _ => return Err($err.into()),
         }
     };
 }
