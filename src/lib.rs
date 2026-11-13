@@ -198,6 +198,7 @@ macro_rules! assume_matches {
             #[allow(unused_variables)]
             $pat $(if $guard)? => {}
             ref got => {
+                std::hint::cold_path();
                 let message = format!("{}, got: `{:?}`", format!($fmt), got);
                 return Err($crate::Assumption::from(message).into());
             }
@@ -208,6 +209,7 @@ macro_rules! assume_matches {
             #[allow(unused_variables)]
             $pat $(if $guard)? => {}
             ref got => {
+                std::hint::cold_path();
                 let message = format!("{}, got: `{:?}`", format!($fmt, $($arg)+), got);
                 return Err($crate::Assumption::from(message).into());
             }
@@ -217,7 +219,10 @@ macro_rules! assume_matches {
         match $expr {
             #[allow(unused_variables)]
             $pat $(if $guard)? => {}
-            _ => return Err($err.into()),
+            _ => {
+                std::hint::cold_path();
+                return Err($err.into());
+            }
         }
     };
 }
@@ -302,15 +307,18 @@ macro_rules! assume_implies {
 /// ```
 #[macro_export]
 macro_rules! assumption {
-    ($fmt:literal $(,)?) => {
+    ($fmt:literal $(,)?) => {{
+        std::hint::cold_path();
         return Err($crate::Assumption::from(format!($fmt)).into())
-    };
-    ($fmt:literal, $($arg:tt)+) => {
+    }};
+    ($fmt:literal, $($arg:tt)+) => {{
+        std::hint::cold_path();
         return Err($crate::Assumption::from(format!($fmt, $($arg)+)).into())
-    };
-    ($err:expr $(,)?) => {
+    }};
+    ($err:expr $(,)?) => {{
+        std::hint::cold_path();
         return Err($err.into())
-    };
+    }};
 }
 
 /// A violated invariant about an external, uncontrolled system.
@@ -446,9 +454,11 @@ impl<T> Assume<T> for Option<T> {
             clippy::option_if_let_else,
             reason = "for `track_caller` to work properly, no closures can be used"
         )]
-        match option {
-            Some(some) => Ok(some),
-            None => Err(Assumption::from(String::from(assumption))),
+        if let Some(some) = option {
+            Ok(some)
+        } else {
+            std::hint::cold_path();
+            Err(Assumption::from(assumption))
         }
     }
 
@@ -460,9 +470,11 @@ impl<T> Assume<T> for Option<T> {
             clippy::option_if_let_else,
             reason = "for `track_caller` to work properly, no closures can be used"
         )]
-        match option {
-            Some(some) => Ok(some),
-            None => Err(Assumption::from(assumption())),
+        if let Some(some) = option {
+            Ok(some)
+        } else {
+            std::hint::cold_path();
+            Err(Assumption::from(assumption()))
         }
     }
 }
@@ -474,7 +486,10 @@ impl<T, E: Display> Assume<T> for Result<T, E> {
         let result = self;
         match result {
             Ok(ok) => Ok(ok),
-            Err(err) => Err(Assumption::from(format!("{assumption}: {err}"))),
+            Err(err) => {
+                std::hint::cold_path();
+                Err(Assumption::from(format!("{assumption}: {err}")))
+            }
         }
     }
 
@@ -484,7 +499,10 @@ impl<T, E: Display> Assume<T> for Result<T, E> {
         let result = self;
         match result {
             Ok(ok) => Ok(ok),
-            Err(err) => Err(Assumption::from(format!("{}: {err}", assumption()))),
+            Err(err) => {
+                std::hint::cold_path();
+                Err(Assumption::from(format!("{}: {err}", assumption())))
+            }
         }
     }
 }
